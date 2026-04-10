@@ -786,11 +786,10 @@ static inline void attachInterrupt(pin_size_t interruptNumber, voidFuncPtr callb
 //#define PIN_WIRE_SDA            (6u)
 //#define PIN_WIRE_SCL            (7u)
 
-// Newer SDKs don't define these at all
-#ifndef PIN_WIRE_SDA
-#define PIN_WIRE_SDA PIN_WIRE0_SDA
-#define PIN_WIRE_SCL PIN_WIRE0_SCL
-#endif
+// TODO: Specification of pins for SDA and SCL can be through
+// constructor of I2CFirmata or so.
+#define PIN_WIRE_SDA (6u)
+#define PIN_WIRE_SCL (7u)
 
 #define IS_PIN_I2C(p)           ((p) == PIN_WIRE_SDA || (p) == PIN_WIRE_SCL)
 // SPI-0 defaults to GP 16 (RX / MISO), 17 (CSn), 18 (SCK) & 19 (TX / MOSI) (physical pins 21, 22, 24, 25)

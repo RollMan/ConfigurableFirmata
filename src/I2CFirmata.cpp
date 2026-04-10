@@ -8,9 +8,22 @@
 #include "Wire.h"
 #include "I2CFirmata.h"
 
+// Use Wire1 (I2C1) by default when the target is raspberry pi pico.
+// TODO: pass the wire instance via constructor parameters.
+#ifndef FIRMATA_WIRE_INSTANCE
+    #if defined(TARGET_RP2040) || defined(TARGET_RASPBERRY_PI_PICO)
+        #define FIRMATA_WIRE_INSTANCE (Wire1)
+        #warning === using Wire1 ===
+    #else
+        #define FIRMATA_WIRE_INSTANCE (Wire)
+        #warning +++ using Wire +++
+    #endif
+#endif
+
 I2CFirmata::I2CFirmata()
 	: query()
 {
+    // TODO: pass the wire instance via constructor parameters.
     isI2CEnabled = false;
     queryIndex = -1;
     i2cReadDelayTime = 0;  // default delay time between i2c read request and Wire.requestFrom()
@@ -22,9 +35,9 @@ void I2CFirmata::readAndReportData(byte address, int theRegister, byte numBytes,
   // for example, some devices using an interrupt pin to signify new data available
   // do not always require the register read so upon interrupt you call Wire.requestFrom()
   if (theRegister != I2C_REGISTER_NOT_SPECIFIED) {
-    Wire.beginTransmission(address);
-    Wire.write((byte)theRegister);
-    Wire.endTransmission(stopTX); // default = true
+    FIRMATA_WIRE_INSTANCE.beginTransmission(address);
+    FIRMATA_WIRE_INSTANCE.write((byte)theRegister);
+    FIRMATA_WIRE_INSTANCE.endTransmission(stopTX); // default = true
     // do not set a value of 0
     if (i2cReadDelayTime > 0) {
       // delay is necessary for some devices such as WiiNunchuck
@@ -35,21 +48,21 @@ void I2CFirmata::readAndReportData(byte address, int theRegister, byte numBytes,
     theRegister = 0;  // fill the register with a dummy value
   }
 
-  Wire.requestFrom(address, numBytes);  // all bytes are returned in requestFrom
+  FIRMATA_WIRE_INSTANCE.requestFrom(address, numBytes);  // all bytes are returned in requestFrom
 
   // check to be sure correct number of bytes were returned by slave
-  if (numBytes < Wire.available()) {
+  if (numBytes < FIRMATA_WIRE_INSTANCE.available()) {
     Firmata.sendString(F("I2C: Too many bytes received"));
   }
-  else if (numBytes > Wire.available()) {
+  else if (numBytes > FIRMATA_WIRE_INSTANCE.available()) {
     // Firmata.sendString(F("I2C: Too few bytes received"));
-    numBytes = Wire.available();
+    numBytes = FIRMATA_WIRE_INSTANCE.available();
   }
 
   i2cRxData[0] = (byte)theRegister;
 
-  for (int i = 0; i < numBytes && Wire.available(); i++) {
-    i2cRxData[1 + i] = Wire.read();
+  for (int i = 0; i < numBytes && FIRMATA_WIRE_INSTANCE.available(); i++) {
+    i2cRxData[1 + i] = FIRMATA_WIRE_INSTANCE.read();
   }
 
   // send slave address, register and received bytes
@@ -133,12 +146,12 @@ void I2CFirmata::handleI2CRequest(byte argc, byte* argv)
 
   switch (mode) {
   case I2C_WRITE:
-    Wire.beginTransmission(slaveAddress);
+    FIRMATA_WIRE_INSTANCE.beginTransmission(slaveAddress);
     for (byte i = 2; i < argc; i += 2) {
       data = argv[i] + (argv[i + 1] << 7);
-      Wire.write(data);
+      FIRMATA_WIRE_INSTANCE.write(data);
     }
-    Wire.endTransmission();
+    FIRMATA_WIRE_INSTANCE.endTransmission();
     delayMicroseconds(70);
     break;
   case I2C_READ:
@@ -243,13 +256,13 @@ boolean I2CFirmata::enableI2CPins()
 
   isI2CEnabled = true;
 
-  Wire.end();
+  FIRMATA_WIRE_INSTANCE.end();
 #if defined(ARDUINO_M5STACK_Core2) || defined (ARDUINO_M5STACK_TOUGH)
     // For the M5Stack, we explicitly choose the pins, because we want to use the internal I2C bus by default
     // It has the on-board devices attached: touchscreen, RTC, power controller and IMU (Core2 only)
-  Wire.begin(21, 22);
+  FIRMATA_WIRE_INSTANCE.begin(21, 22);
 #else
-  Wire.begin();
+  FIRMATA_WIRE_INSTANCE.begin();
 #endif
   return true;
 }
