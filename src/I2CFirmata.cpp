@@ -11,13 +11,16 @@
 // Use Wire1 (I2C1) by default when the target is raspberry pi pico.
 // TODO: pass the wire instance via constructor parameters.
 #ifndef FIRMATA_WIRE_INSTANCE
-    #if defined(TARGET_RP2040) || defined(TARGET_RASPBERRY_PI_PICO)
-        #define FIRMATA_WIRE_INSTANCE (Wire1)
-        #warning === using Wire1 ===
-    #else
-        #define FIRMATA_WIRE_INSTANCE (Wire)
-        #warning +++ using Wire +++
-    #endif
+#if defined(TARGET_RP2040) || defined(TARGET_RASPBERRY_PI_PICO)
+#define FIRMATA_WIRE_INSTANCE (Wire1)
+#pragma message("using Wire1")
+#else
+#define FIRMATA_WIRE_INSTANCE (Wire)
+#pragma message("using Wire")
+#endif
+#else
+#pragma message ("FIRMATA_WIRE_INSTANCE already defined." )
+
 #endif
 
 I2CFirmata::I2CFirmata()
@@ -257,6 +260,8 @@ boolean I2CFirmata::enableI2CPins()
   isI2CEnabled = true;
 
   FIRMATA_WIRE_INSTANCE.end();
+  FIRMATA_WIRE_INSTANCE.setSDA(PIN_WIRE_SDA);
+  FIRMATA_WIRE_INSTANCE.setSCL(PIN_WIRE_SCL);
 #if defined(ARDUINO_M5STACK_Core2) || defined (ARDUINO_M5STACK_TOUGH)
     // For the M5Stack, we explicitly choose the pins, because we want to use the internal I2C bus by default
     // It has the on-board devices attached: touchscreen, RTC, power controller and IMU (Core2 only)
